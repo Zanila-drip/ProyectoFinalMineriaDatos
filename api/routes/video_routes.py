@@ -42,20 +42,22 @@ async def upload_video(camera_id: str, video: UploadFile = File(...)):
         
         return response.json()
 
-@router.get("/videos")
+@router.get("/videos", response_model=List[VideoResponse])
 async def get_videos():
     """Obtiene todos los videos de todas las cámaras"""
-    all_videos = []
-    
-    # Obtener videos de cada API de cámara
-    async with httpx.AsyncClient() as client:
-        for camera_id, api_url in CAMERA_APIS.items():
-            response = await client.get(f"{api_url}/api/v1/videos")
-            if response.status_code == 200:
-                videos = response.json()
-                all_videos.extend(videos)
-    
-    return all_videos
+    videos = video_service.get_videos()
+    return [
+        VideoResponse(
+            id=video["filename"],
+            camera_id=video["filename"].split("_")[1],
+            filename=video["filename"],
+            created_at=video["created_at"],
+            status=video_service.get_video_status(video["filename"])["status"] 
+            if video_service.get_video_status(video["filename"]) 
+            else "pending"
+        )
+        for video in videos
+    ]
 
 @router.post("/status/{filename}")
 async def update_video_status(filename: str, status: dict):
@@ -85,22 +87,6 @@ async def update_video_status(filename: str, status: dict):
             )
         
         return response.json()
-
-@router.get("/videos", response_model=List[VideoResponse])
-async def list_videos():
-    videos = video_service.get_videos()
-    return [
-        VideoResponse(
-            id=video["filename"],
-            camera_id=video["filename"].split("_")[1],
-            filename=video["filename"],
-            created_at=video["created_at"],
-            status=video_service.get_video_status(video["filename"])["status"] 
-            if video_service.get_video_status(video["filename"]) 
-            else "pending"
-        )
-        for video in videos
-    ]
 
 @router.get("/video/{filename}", response_model=VideoResponse)
 async def get_video(filename: str):
