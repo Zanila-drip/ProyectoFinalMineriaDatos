@@ -1,8 +1,6 @@
-import os
+from typing import List, Dict, Optional
 from datetime import datetime
 from pathlib import Path
-import shutil
-from typing import List, Optional
 import redis
 import json
 
@@ -10,53 +8,39 @@ class VideoService:
     def __init__(self):
         self.videos_dir = Path("videos")
         self.videos_dir.mkdir(exist_ok=True)
-        self.redis_client = redis.Redis(host='localhost', port=6379, db=0)
+        self.redis_client = redis.Redis(host='redis', port=6379, db=0)
 
-    async def save_video(self, file, camera_id: str) -> str:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"traffic_{camera_id}_{timestamp}.mp4"
-        file_path = self.videos_dir / filename
-
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        # Publicar evento de nuevo video
-        self.redis_client.publish(
-            'new_videos',
-            json.dumps({
-                'filename': filename,
-                'camera_id': camera_id,
-                'timestamp': timestamp
-            })
-        )
-
-        return filename
-
-    def get_videos(self) -> List[dict]:
+    def get_videos(self) -> List[Dict]:
+        """Obtiene la lista de videos disponibles"""
         videos = []
-        for video in self.videos_dir.glob("*.mp4"):
-            videos.append({
-                "filename": video.name,
-                "size": video.stat().st_size,
-                "created_at": datetime.fromtimestamp(video.stat().st_ctime)
-            })
+        for video_file in self.videos_dir.glob("*"):
+            if video_file.is_file():
+                videos.append({
+                    "filename": video_file.name,
+                    "created_at": datetime.fromtimestamp(video_file.stat().st_ctime)
+                })
         return videos
 
     def get_video_path(self, filename: str) -> Optional[Path]:
+        """Obtiene la ruta del video si existe"""
         video_path = self.videos_dir / filename
         return video_path if video_path.exists() else None
 
-    def update_video_status(self, filename: str, status: str, results: Optional[dict] = None):
-        key = f"video:{filename}"
-        data = {
-            'status': status,
-            'updated_at': datetime.now().isoformat()
-        }
-        if results:
-            data['results'] = results
-        self.redis_client.hmset(key, data)
+    def get_video_status(self, filename: str) -> Optional[Dict]:
+        """Obtiene el estado del video desde Redis"""
+        status = self.redis_client.get(f"video_status:{filename}")
+        return json.loads(status) if status else None
 
-    def get_video_status(self, filename: str) -> Optional[dict]:
-        key = f"video:{filename}"
-        data = self.redis_client.hgetall(key)
-        return data if data else None 
+    def update_video_status(self, filename: str, status: Dict) -> None:
+        """Actualiza el estado del video en Redis"""
+        self.redis_client.set(
+            f"video_status:{filename}",
+            json.dumps(status)
+        )
+
+    def save_video(self, filename: str, content: bytes) -> Path:
+        """Guarda un video en el directorio de videos"""
+        video_path = self.videos_dir / filename
+        with open(video_path, "wb") as f:
+            f.write(content)
+        return video_path
