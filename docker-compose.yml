@@ -1,0 +1,187 @@
+version: '3.8'
+
+services:
+  # Super API
+  super-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./videos:/app/videos
+      - ./frames_analizados:/app/frames_analizados
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - app-network
+
+  # API Cámara 1
+  api-cam1:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./videos:/app/videos
+      - ./frames_analizados:/app/frames_analizados
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/
+      - REDIS_URL=redis://redis:6379/0
+      - CAMERA_ID=cam1
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - app-network
+
+  # API Cámara 2
+  api-cam2:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./videos:/app/videos
+      - ./frames_analizados:/app/frames_analizados
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/
+      - REDIS_URL=redis://redis:6379/0
+      - CAMERA_ID=cam2
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - app-network
+
+  # API Cámara 3
+  api-cam3:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./videos:/app/videos
+      - ./frames_analizados:/app/frames_analizados
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/
+      - REDIS_URL=redis://redis:6379/0
+      - CAMERA_ID=cam3
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - app-network
+
+  # API Cámara 4
+  api-cam4:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./videos:/app/videos
+      - ./frames_analizados:/app/frames_analizados
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/
+      - REDIS_URL=redis://redis:6379/0
+      - CAMERA_ID=cam4
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - app-network
+
+  # Jupyter para cada cámara
+  jupyter-cam1:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    ports:
+      - "8881:8888"
+    volumes:
+      - ./notebooks:/app/notebooks
+      - ./videos:/app/videos
+      - ./frames_analizados:/app/frames_analizados
+    environment:
+      - API_URL=http://api-cam1:8000
+    networks:
+      - app-network
+
+  jupyter-cam2:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    ports:
+      - "8882:8888"
+    volumes:
+      - ./notebooks:/app/notebooks
+      - ./videos:/app/videos
+      - ./frames_analizados:/app/frames_analizados
+    environment:
+      - API_URL=http://api-cam2:8000
+    networks:
+      - app-network
+
+  jupyter-cam3:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    ports:
+      - "8883:8888"
+    volumes:
+      - ./notebooks:/app/notebooks
+      - ./videos:/app/videos
+      - ./frames_analizados:/app/frames_analizados
+    environment:
+      - API_URL=http://api-cam3:8000
+    networks:
+      - app-network
+
+  jupyter-cam4:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    ports:
+      - "8884:8888"
+    volumes:
+      - ./notebooks:/app/notebooks
+      - ./videos:/app/videos
+      - ./frames_analizados:/app/frames_analizados
+    environment:
+      - API_URL=http://api-cam4:8000
+    networks:
+      - app-network
+
+  # Redis
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  # MongoDB
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
