@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./videos:/app/videos
+      - ./frames_analizados:/app/frames_analizados
+      - ./mongo_data:/app/mongo_data
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+volumes:
+  mongodb_data: 
