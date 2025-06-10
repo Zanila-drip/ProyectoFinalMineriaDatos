@@ -70,6 +70,17 @@ def crear_gif(video_id):
     db = client['trafico']
     fs = gridfs.GridFS(db)
     frames_col = db['VideosFrames']
+    videos_col = db['Videos']
+
+    # Obtener el nombre del video
+    video = videos_col.find_one({"_id": video_id})
+    if not video:
+        print("No se encontró el video en la base de datos.")
+        return
+
+    # Crear el nombre del GIF basado en el nombre del video
+    video_name = os.path.splitext(video['nombre'])[0]  # Remover la extensión
+    gif_path = f'frames_analizados/{video_name}_detections.gif'
 
     frames_cursor = frames_col.find({"video_id": video_id}).sort("frame_num", 1)
     frames_list = list(frames_cursor)
@@ -83,7 +94,6 @@ def crear_gif(video_id):
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             frames.append(img_rgb)
 
-    gif_path = 'frames_analizados/detections_gridfs.gif'
     if frames:
         imageio.mimsave(gif_path, frames, fps=10, loop=0)
         print(f"GIF guardado en: {gif_path}")
