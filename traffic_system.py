@@ -102,6 +102,61 @@ class TrafficCoordinator:
         # basada en los datos de todas las cámaras
         pass
 
+class TrafficSystem:
+    def __init__(self):
+        self.model = None
+        
+    def load_model(self, model_path):
+        self.model = YOLO(model_path)
+        
+    def detect_objects_from_array(self, frame):
+        results = self.model(frame, conf=0.5)
+        detections = []
+        
+        for result in results:
+            boxes = result.boxes
+            for box in boxes:
+                cls = int(box.cls[0])
+                conf = float(box.conf[0])
+                if cls == 2:  # Solo vehículos
+                    detections.append({
+                        'confidence': conf,
+                        'bbox': box.xyxy[0].tolist()
+                    })
+                    
+                    # Dibujar el bbox en el frame
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.putText(frame, f'Car {conf:.2f}', (x1, y1-10), 
+                              cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        
+        return frame, detections
+        
+    def analyze_traffic(self, detections, frame_num, video_id):
+        # Calcular métricas básicas
+        total_vehicles = len(detections)
+        confidences = [d['confidence'] for d in detections]
+        avg_confidence = sum(confidences) / len(confidences) if confidences else 0
+        
+        # Simular algunas métricas adicionales
+        hour = datetime.now().hour
+        day_of_week = datetime.now().weekday()
+        weather = 'sunny' if hour > 6 and hour < 18 else 'cloudy'
+        
+        return {
+            'total_vehicles': total_vehicles,
+            'by_class': {'car': total_vehicles},
+            'average_confidence': avg_confidence,
+            'timestamp': datetime.now(),
+            'frame_num': frame_num,
+            'video_id': video_id,
+            'waiting_time': total_vehicles * 2,  # Simulación
+            'traffic_density': total_vehicles / 10,  # Simulación
+            'hour': hour,
+            'day_of_week': day_of_week,
+            'weather': weather
+        }
+
 def main():
     # Configuración de cámaras
     cameras_config = {
